@@ -9,10 +9,10 @@ export 'package:qr_reader/models/scan_model.dart';
 
 class DatabaseHelper {
 
-  static const _databaseName = "scan.db";
+  static const _databaseName = "MyDatabase.db";
   static const _databaseVersion = 1;
   static const table = 'scans';
-  static const columnId = '_id';
+  static const columnId = 'id';
   static const columnTipo = 'tipo';
   static const columnValor = 'valor';
 
@@ -33,7 +33,6 @@ class DatabaseHelper {
   _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, _databaseName);
-    print(path);
     return await openDatabase(path,
         version: _databaseVersion,
         onCreate: _onCreate);
@@ -43,49 +42,62 @@ class DatabaseHelper {
   Future _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE $table (
-        $columnId INTEGER PRIMARY KEY AUTOINCREMENT,
+        $columnId INTEGER PRIMARY KEY,
         $columnTipo TEXT NOT NULL,
         $columnValor INTEGER NOT NULL
       )
       '''
     );
   }
-  
-  Future<int> insert(ScanModel nuevoScan) async {
+  Future<int> nuevoScan(ScanModel nuevoScan) async {
     Database? db = await instance.database;
-    return await db!.insert(table, nuevoScan.toJson());
+    final res = await db!.insert('scans', nuevoScan.toJson());
+    //return await db!.insert(table, nuevoScan.toJson());
+    return res;
   }
 
-
-
-  /*
-  // All of the rows are returned as a list of maps, where each map is
-  // a key-value list of columns.
-  Future<List<Map<String, dynamic>>> queryAllRows() async {
+  Future<ScanModel?> getScanById(int id) async {
     Database? db = await instance.database;
-    return await db!.query(table);
+    final res = await db!.query('scans', where: 'id = ?', whereArgs: [id]);
+
+    return res.isNotEmpty
+          ? ScanModel.fromJson(res.first)
+          : null;
   }
 
-  // All of the methods (insert, query, update, delete) can also be done using
-  // raw SQL commands. This method uses a raw query to give the row count.
-  Future<int?> queryRowCount() async {
+  Future<List<ScanModel>?> getAllScans() async {
     Database? db = await instance.database;
-    return Sqflite.firstIntValue(await db!.rawQuery('SELECT COUNT(*) FROM $table'));
+    final res = await db!.query('scans');
+
+    return res.isNotEmpty
+          ? res.map((scan) => ScanModel.fromJson(scan)).toList()
+          : [];
   }
 
-  // We are assuming here that the id column in the map is set. The other
-  // column values will be used to update the row.
-  Future<int> update(Map<String, dynamic> row) async {
+  Future<List<ScanModel>?> getScansForType(String tipo) async {
     Database? db = await instance.database;
-    int id = row[columnId];
-    return await db!.update(table, row, where: '$columnId = ?', whereArgs: [id]);
+    final res = await db!.query('scans', where: 'tipo = ?', whereArgs: [tipo]);
+
+    return res.isNotEmpty
+          ? res.map((scan) => ScanModel.fromJson(scan)).toList()
+          : [];
   }
 
-  // Deletes the row specified by the id. The number of affected rows is
-  // returned. This should be 1 as long as the row exists.
-  Future<int> delete(int id) async {
+  Future<int> updateScan(ScanModel nuevoScan) async {
     Database? db = await instance.database;
-    return await db!.delete(table, where: '$columnId = ?', whereArgs: [id]);
+    final res = await db!.update('scans', nuevoScan.toJson(), where: 'id = ?', whereArgs: [nuevoScan.id]);
+    return res;
   }
-  */
+
+  Future<int> deleteScan(int id) async {
+    Database? db = await instance.database;
+    final res = await db!.delete('scans', where: 'id = ?', whereArgs: [id]);
+    return res;
+  }
+
+  Future<int> deleteAllScan() async {
+    Database? db = await instance.database;
+    final res = await db!.delete('scans');
+    return res;
+  }
 }
